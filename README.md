@@ -6,6 +6,7 @@ Script to snapshot and export opennebula persistent VMs (image and optionally fi
 The backup server must have access to the opennebula controller and the ceph cluster.
 
 It is assumed that
+
 1. image names are the same as the vm name
 2. backup user exists in opennebula
 3. ceph client authentication is working
@@ -24,6 +25,8 @@ Script should:
 
 Tested using Bareos, sample config:
 
+
+```
 Job {
   Name = "Backup_VM_grumpy"
   JobDefs = "Weekly"
@@ -43,4 +46,5 @@ FileSet {
     File = "\\|/usr/local/bin/exportvm.sh -f -u 192.168.1.2 -i my-rbd-id -p my-rbd-pool grumpy"
   }
 }
+```
 
