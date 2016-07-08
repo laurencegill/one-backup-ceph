@@ -48,3 +48,6 @@ FileSet {
 }
 ```
 
+Note: be sure to increase "Client Connect Wait" from the default of 1800 seconds if backing up large VMs
+
+
