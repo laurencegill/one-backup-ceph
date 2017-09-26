@@ -29,10 +29,10 @@ RBD="/usr/bin/rbd"
 # Script env
 C="0"
 ABORT="0"
-LIMIT="900"
+LIMIT="1080"
 WAIT="5"
 DOW=$(date +"%u")
-DATE=$(date +"%T")
+DATE=$(date +"%F-%T")
 
 while getopts a:d:fi:p:u:v o; do
   case "$o" in
@@ -75,7 +75,7 @@ GEN_DISK_IDS=$(onevm show ${HOST} | sed -n -e '/VM DISKS/,/VM NICS/ p' |grep ${H
 
 # If the vm does not exist do not continue
 if [ $(${ONEVM} list -f NAME=${HOST} -lNAME |grep -v "NAME"|wc -l) -eq 0 ]; then
-  echo "VM ${HOST} not found" > ${LOG} 2>&1
+  echo "VM ${HOST} not found" >> ${LOG} 2>&1
   exit 1
 fi 
 
@@ -89,16 +89,16 @@ if [ $(${ONEVM} show ${HOST} | grep LCM_STATE | cut -d ":" -f 2) = "RUNNING" ]; 
 
     # If the images exists, something is wrong 
     if [ $(${ONEIMAGE} list -f NAME=${SAVEIMG} -lNAME |grep -v "NAME"|wc -l) -ne 0 ]; then
-      echo "Backup image ${HOST} already exists" > ${LOG} 2>&1
+      echo "Backup image ${HOST} already exists" >> ${LOG} 2>&1
       exit 1
     fi 
 
     # Take snapshot for backup
-    # V4.14
-    #${ONEVM} disk-saveas --live ${HOST} ${DISK_ID} ${SAVEIMG} > ${LOG} 2>&1 
-    # V4.12
-    ${ONEVM} disk-snapshot --live ${HOST} ${DISK_ID} ${SAVEIMG} > ${LOG} 2>&1 
-    # Wait 15 min max for the image to be ready
+    ${ONEVM} disk-saveas ${HOST} ${DISK_ID} ${SAVEIMG} >> ${LOG} 2>&1
+    # Legacy command <= V4.12
+    #${ONEVM} disk-snapshot --live ${HOST} ${DISK_ID} ${SAVEIMG} >> ${LOG} 2>&1
+
+    # Wait LIMIT * WAIT seconds max for the image to be ready
     until [ $(${ONEIMAGE} show ${SAVEIMG} | grep STATE | cut -d ":" -f 2) = "rdy" ]; do
       if [ ${ABORT} -eq 0 ]; then
         C=$(($C+1))
@@ -107,7 +107,7 @@ if [ $(${ONEVM} show ${HOST} | grep LCM_STATE | cut -d ":" -f 2) = "RUNNING" ]; 
             ABORT=1
           fi
       else
-        echo "Snapshot of ${HOST}exceeded time limit of $((${LIMIT}*${WAIT})) seconds" > ${LOG} 2>&1
+        echo "Snapshot of ${HOST} exceeded time limit of $((${LIMIT}*${WAIT})) seconds" >> ${LOG} 2>&1
         exit 1
       fi
     done
@@ -117,7 +117,7 @@ if [ $(${ONEVM} show ${HOST} | grep LCM_STATE | cut -d ":" -f 2) = "RUNNING" ]; 
 
     # Export rdb device to disk for backup
     if [ -f ${EI} ]; then
-      echo "File ${EI} already exists" > ${LOG} 2>&1
+      echo "File ${EI} already exists" >> ${LOG} 2>&1
       exit 1
     else
       ${RBD} --no-progress --id $RBD_ID -p $RBD_POOL export ${RBD_IMAGE} ${EI}
@@ -127,7 +127,7 @@ if [ $(${ONEVM} show ${HOST} | grep LCM_STATE | cut -d ":" -f 2) = "RUNNING" ]; 
     if [ $? -eq 0 ]; then
       ${ONEIMAGE} delete ${SAVEIMG}
     else
-      echo "Export error for ${EI}" > ${LOG} 2>&1
+      echo "Export error for ${EI}" >> ${LOG} 2>&1
       exit 1
     fi
 
@@ -135,25 +135,28 @@ if [ $(${ONEVM} show ${HOST} | grep LCM_STATE | cut -d ":" -f 2) = "RUNNING" ]; 
     if [ ${EXTRACT} = "NO" ]; then
       echo ${EI}
     elif [ ${EXTRACT} = "YES" ]; then
+      # output the image on a friday
       if [ "${DOW}" -eq 5 ]; then
+      # output snapshot on sat or sun to gives the full fs more backup time
+      #if [ "${DOW}" -eq 6 -o "${DOW}" -eq 7 ]; then
         echo ${EI}
       fi
       mkdir -p ${EF}
       if [ "${DISK_ID}" -eq 0 ]; then
-        guestfish --ro -i copy-out -a ${EI} / ${EF} > ${LOG} 2>&1 | head
+        guestfish --ro -i copy-out -a ${EI} / ${EF} >> ${LOG} 2>&1 | head
       else
         FS=$(virt-list-filesystems ${EI} | head -1)
         guestfish --ro -a ${EI} -m ${FS} tar-out / - | tar -xf - -C ${EF}
       fi
       echo ${EF}
     else
-      echo "Extract error for ${EF}" > ${LOG} 2>&1
+      echo "Extract error for ${EF}" >> ${LOG} 2>&1
       exit 1
     fi
   done
 
 else
   # Bork
-  echo "${HOST} not found or not running" > ${LOG} 2>&1
+  echo "${HOST} not found or not running" >> ${LOG} 2>&1
   exit 1
 fi
