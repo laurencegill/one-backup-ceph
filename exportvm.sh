@@ -34,9 +34,11 @@ WAIT="5"
 DOW=$(date +"%u")
 DATE=$(date +"%F-%T")
 
-while getopts a:d:fi:p:u:v o; do
+while getopts a:c:d:fi:p:u:v o; do
   case "$o" in
     a) ONE_AUTH="$OPTARG"
+    ;;
+    c) CEPH_CONF="$OPTARG"
     ;;
     d) EXPORT_PATH="$OPTARG"
     ;;
@@ -67,6 +69,7 @@ EXPORT_PATH="${EXPORT_PATH:-/var/lib/bareos}"
 EXTRACT="${EXTRACT:-NO}"
 BACKUP="${HOST}_snap_disk"
 LOG="${LOG:-/dev/null}"
+CEPH_CONF="${CEPH_CONF:-/etc/ceph/ceph.conf}"
 
 export ONE_AUTH ONE_XMLRPC
 
@@ -120,7 +123,7 @@ if [ $(${ONEVM} show ${HOST} | grep LCM_STATE | cut -d ":" -f 2) = "RUNNING" ]; 
       echo "File ${EI} already exists" >> ${LOG} 2>&1
       exit 1
     else
-      ${RBD} --no-progress --id $RBD_ID -p $RBD_POOL export ${RBD_IMAGE} ${EI}
+      ${RBD} -c $CEPH_CONF --no-progress --id $RBD_ID -p $RBD_POOL export ${RBD_IMAGE} ${EI}
     fi
 
     # Delete snapshot once exported to disk
@@ -160,3 +163,4 @@ else
   echo "${HOST} not found or not running" >> ${LOG} 2>&1
   exit 1
 fi
+
