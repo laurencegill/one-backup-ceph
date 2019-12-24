@@ -3,14 +3,15 @@
 set -e
 
 usage() {
-  echo "Usage: $0 [-a one_auth] [-d export_dir] [-f] [-i rbd_id] [-p rbd_pool] [-u rpc_url] [-v] [vmname]"
+  echo "Usage: $0 [-a one_auth] [-c ceph_conf] [-d export_dir] [-f] [-i rbd_id] [-p rbd_pool] [-u rpc_url] [-v] [vmname]"
   echo "Defaults:"
-  echo "  one_auth:   /var/lib/bareos/.one_auth"
-  echo "  export_dir: /var/lib/bareos/"
-  echo "  -f file extraction from snapshot (experimental, requires libguestfs)"
-  echo "  rbd_id:     libvirt"
-  echo "  rbd_pool:   one-pool"
-  echo "  rpc_url:    127.0.0.1"
+  echo "    one_auth:   /var/lib/bareos/.one_auth"
+  echo "   ceph_conf:   /etc/ceph/ceph.conf"
+  echo "  export_dir:   /var/lib/bareos/"
+  echo "          -f:   file extraction from snapshot (experimental, requires libguestfs)"
+  echo "      rbd_id:   libvirt"
+  echo "    rbd_pool:   one-pool"
+  echo "     rpc_url:   127.0.0.1"
   exit 1
 }
 
