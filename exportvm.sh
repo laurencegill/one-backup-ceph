@@ -3,7 +3,8 @@
 set -e
 
 usage() {
-  echo "Usage: $0 [-a one_auth] [-c ceph_conf] [-d export_dir] [-f] [-i rbd_id] [-p rbd_pool] [-u rpc_url] [-v] [vmname]"
+  echo "Usage: [1;32m$(basename $0)[0m [-a one_auth] [-c ceph_conf] [-d export_dir] [-f] [-i rbd_id] [-p rbd_pool] [-u rpc_url] [-v] [vmname]"
+  echo
   echo "Defaults:"
   echo "    one_auth:   /var/lib/bareos/.one_auth"
   echo "   ceph_conf:   /etc/ceph/ceph.conf"
