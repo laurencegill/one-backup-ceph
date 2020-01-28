@@ -3,14 +3,16 @@
 set -e
 
 usage() {
-  echo "Usage: $0 [-a one_auth] [-d export_dir] [-f] [-i rbd_id] [-p rbd_pool] [-u rpc_url] [-v] [vmname]"
+  echo "Usage: [1;32m$(basename $0)[0m [-a one_auth] [-c ceph_conf] [-d export_dir] [-f] [-i rbd_id] [-p rbd_pool] [-u rpc_url] [-v] [vmname]"
+  echo
   echo "Defaults:"
-  echo "  one_auth:   /var/lib/bareos/.one_auth"
-  echo "  export_dir: /var/lib/bareos/"
-  echo "  -f file extraction from snapshot (experimental, requires libguestfs)"
-  echo "  rbd_id:     libvirt"
-  echo "  rbd_pool:   one-pool"
-  echo "  rpc_url:    127.0.0.1"
+  echo "    one_auth:   /var/lib/bareos/.one_auth"
+  echo "   ceph_conf:   /etc/ceph/ceph.conf"
+  echo "  export_dir:   /var/lib/bareos/"
+  echo "          -f:   file extraction from snapshot (experimental, requires libguestfs)"
+  echo "      rbd_id:   libvirt"
+  echo "    rbd_pool:   one-pool"
+  echo "     rpc_url:   127.0.0.1"
   exit 1
 }
 
@@ -34,9 +36,11 @@ WAIT="5"
 DOW=$(date +"%u")
 DATE=$(date +"%F-%T")
 
-while getopts a:d:fi:p:u:v o; do
+while getopts a:c:d:fi:p:u:v o; do
   case "$o" in
     a) ONE_AUTH="$OPTARG"
+    ;;
+    c) CEPH_CONF="$OPTARG"
     ;;
     d) EXPORT_PATH="$OPTARG"
     ;;
@@ -67,6 +71,7 @@ EXPORT_PATH="${EXPORT_PATH:-/var/lib/bareos}"
 EXTRACT="${EXTRACT:-NO}"
 BACKUP="${HOST}_snap_disk"
 LOG="${LOG:-/dev/null}"
+CEPH_CONF="${CEPH_CONF:-/etc/ceph/ceph.conf}"
 
 export ONE_AUTH ONE_XMLRPC
 
@@ -120,7 +125,7 @@ if [ $(${ONEVM} show ${HOST} | grep LCM_STATE | cut -d ":" -f 2) = "RUNNING" ]; 
       echo "File ${EI} already exists" >> ${LOG} 2>&1
       exit 1
     else
-      ${RBD} --no-progress --id $RBD_ID -p $RBD_POOL export ${RBD_IMAGE} ${EI}
+      ${RBD} -c $CEPH_CONF --no-progress --id $RBD_ID -p $RBD_POOL export ${RBD_IMAGE} ${EI}
     fi
 
     # Delete snapshot once exported to disk
@@ -160,3 +165,4 @@ else
   echo "${HOST} not found or not running" >> ${LOG} 2>&1
   exit 1
 fi
+
