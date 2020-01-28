@@ -1,6 +1,8 @@
 # one-backup-ceph
 Backup rbd backed images to bareos or bacula.
 
+Also there is a complementary python script that checks the bacula and opennebula python apis to check that all of your persistent VMs are being backed up.
+
 Script to snapshot and export opennebula persistent VMs (image and optionally files from within the image using libguestfs) from a ceph datastore.
 
 The backup server must have access to the opennebula controller and the ceph cluster.
