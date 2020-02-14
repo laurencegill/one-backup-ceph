@@ -2,7 +2,7 @@ name: Python application
 
 on:
   schedule:
-    - cron:  '*/15 * * * *'
+    - cron:  '00 09 * * *'
   pull_request:
     branches: 
       - master
