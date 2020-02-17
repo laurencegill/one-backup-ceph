@@ -1,14 +1,14 @@
 #!/usr/bin/python
 
 # LGill 11/2019
-# Check the opennebula pyone api and the bareos python api for 
-# persistent VMs that are running but not being backed up and 
+# Check the opennebula pyone api and the bareos python api for
+# persistent VMs that are running but not being backed up and
 # alert us so we can add them to the backup schedule.
 # Requires the 'bareos-python' and 'pyone' non standard modules
 # Uses python2 rather than 3 as the api for bareos is only
-# available for v2.
+# available for v2
 # Will read the bareos password from a bconsole config, and you
-# need to create a config file for the opennebula user account 
+# need to create a config file for the opennebula user account
 # and exclude lists:
 #
 # > [one backups]
@@ -54,6 +54,8 @@ def get_args(argv=None):
     parser = argparse.ArgumentParser(description='Check if persistent VMs are being backed up by bareos.', epilog='The VM name must be included in the bareos job name.')
     parser.add_argument('-b', '--bconsole', help='bconsole config file, defaults to /etc/bareos/bconsole.conf', default='/etc/bareos/bconsole.conf', type=file)
     parser.add_argument('-c', '--config', help='config for one credentials and VM exclude list, defaults to .one_backups.cnf in current dir', default=cwd+'/.one_backups.cnf')
+    parser.add_argument('-p', '--prefix', help='job prefix, use for weeding out overlapping VM names, it is probably a good idea to use this anyway to prevent false positive matches', default=False)
+    parser.add_argument('-i', '--ignore', help='ignore warnings, you probably don\'t want this, but if you wish to shoot yourself in the foot...', action='store_true')
     parser.add_argument('-d', '--debug', help='debug output', action='store_true')
     parser.add_argument('-H', '--host', help='one frontend host, defaults to localhost', default='127.0.0.1')
     return parser.parse_args(argv)
@@ -67,7 +69,7 @@ def get_bareos_pw():
     bconfig = args.bconsole
     with bconfig as config_file:
         data = config_file.read()
-        config_file.close() # File is opened by argparse
+        config_file.close()  # File is opened by argparse
     bpass = data.partition('Password')[2].strip(' =').partition('\n')[0].replace('"', '')
     return bpass
 
@@ -85,7 +87,7 @@ def get_jobs():
 def get_vms():
 
     """List active VMs in the pool, return a list.
-    
+
     The values essentailly mean display all running
     VMs, more information can be found here:
     http://docs.opennebula.org/5.4/integration/system_interfaces/api.html#one-vmpool-info
@@ -107,7 +109,7 @@ def get_vms():
 def get_pvms():
 
     """Filter out the persistent VMs, return a set."""
-    
+
     vms_to_check = set()
     vms = get_vms()
     for obj in vms:
@@ -130,27 +132,39 @@ def check_vms_to_jobs():
     one_exclude.read(args.config)
     exclude = one_exclude.get('one vms', 'exclude').split(',')
     server, backup = get_pvms_and_jobs()
+
     for val in server:
-        if not val in backup:
-            if not val in exclude:
-                nobackup.append(val)
+        name = (val if args.prefix else False)
+        if args.debug:
+            print('name:', str(type(name))+str(name))
+        val = (args.prefix+val if args.prefix else val)
+
+        count = backup.count(val)
+        if count <= 1:
+            if not (val) in backup:
+                if not (name if args.prefix else val) in exclude:
+                    nobackup.append(name if args.prefix else val)
+        else:
+            if not args.ignore:
+                print('Warning: ' + str(val) + ' matches ' + str(count) + ' times, consider using the --prefix option')
+                exit(1)
 
     if nobackup:
-        print ("These VMs are not being backed up, and are not in the exclude list:")
-        pprint (nobackup, indent=2)
+        print("These VMs are not being backed up, and are not in the exclude list:")
+        pprint(nobackup, indent=2)
 
     if not nobackup:
-        print ("Everything is OK, your backup strategy is good")
+        print("Everything is OK, your backup strategy is good")
 
 
 def print_bacula_jobs():
 
     """Call the get_jobs() function, print the data."""
 
-    print ('-' * 8, 'DEBUG print bacula jobs:')
+    print('-' * 8, 'DEBUG print bacula jobs:')
     clients = get_jobs()
-    print (type(clients))
-    print (clients)
+    print(type(clients))
+    print(clients)
 
 
 def print_all_vms():
@@ -158,14 +172,15 @@ def print_all_vms():
     """Call the get_vms() function, print the data and dump index 0."""
 
     vms = get_vms()
-    print ('-' * 8, 'DEBUG print all VMs, and the entire first object:')
-    print ('-' * 8, 'There are '  + str(len(vms)) +  ' active vms')
-    print ('-' * 8, 'Information about all active VMs:')
+    print('-' * 8, 'DEBUG print all VMs, and the entire first object:')
+    print('-' * 8, 'There are ' + str(len(vms)) + ' active vms')
+    print('-' * 8, 'Information about all active VMs:')
     for obj in vms:
-        print (obj.get_ID(), obj.get_NAME(), obj.get_STATE())
-        #pprint(vars(obj)) # This prints a shitload, use when necessary
+        print(obj.get_ID(), obj.get_NAME(), obj.get_STATE())
+        # This prints a shitload, use when necessary:
+        # pprint(vars(obj))
 
-    print ('-' * 8, 'Printing index 0 object for debugggings:')
+    print('-' * 8, 'Printing index 0 object for debugggings:')
     pprint(vars(vms[0]))
 
 
@@ -173,10 +188,10 @@ def print_persistent_vms():
 
     """Call the get_pvms() function, print the data."""
 
-    print ('-' * 8, 'DEBUG print_persistent_vms:')
+    print('-' * 8, 'DEBUG print_persistent_vms:')
     pvms = get_pvms()
-    print (type(pvms))
-    pprint (pvms)
+    print(type(pvms))
+    pprint(pvms)
 
 
 def main():
@@ -186,7 +201,7 @@ def main():
         print_all_vms()
         print_persistent_vms()
     check_vms_to_jobs()
-    
+
 
 if __name__ == '__main__':
     main()
