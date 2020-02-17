@@ -52,5 +52,4 @@ FileSet {
 
 Note: be sure to increase "Client Connect Wait" from the default of 1800 seconds if backing up large VMs
 
-
-![Python application](https://github.com/laurencegill/one-backup-ceph/workflows/Python%20application/badge.svg)
+![PythonCode](https://github.com/laurencegill/one-backup-ceph/workflows/PythonCode/badge.svg)
